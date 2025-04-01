@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QPushButton, QLabel, QFileDialog,
-                           QStyle, QSlider)
+                           QStyle, QSlider, QSizePolicy)
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QPalette, QColor, QIcon
 import pygame
@@ -8,6 +8,7 @@ import soundfile as sf
 import time
 from ..core.audio_engine import AudioEngine
 from .widgets.waveform_visualizer import WaveformVisualizer
+from pathlib import Path
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -71,7 +72,14 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle('Audio Player')
-        self.setGeometry(300, 300, 800, 500)
+        self.setGeometry(100, 100, 1000, 700)
+
+        # Set window icon
+        icon_path = Path(__file__).parent / 'assets' / 'icon.png'
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
+        else:
+            print(f"Warning: Icon not found at {icon_path}")
 
         # Create central widget and main layout
         central_widget = QWidget()
@@ -80,24 +88,32 @@ class MainWindow(QMainWindow):
         layout.setSpacing(10)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        # File info section
+        # File info section - Fixed height
         self.file_label = QLabel('No file selected')
+        self.file_label.setFixedHeight(50)
         self.file_label.setStyleSheet("""
             QLabel {
-                padding: 15px;
+                padding: 0 15px;
                 background-color: #252525;
                 border-radius: 8px;
                 font-size: 13px;
+                min-height: 50px;
+                max-height: 50px;
+                line-height: 50px;
+                qproperty-alignment: AlignLeft | AlignVCenter;
             }
         """)
         layout.addWidget(self.file_label)
 
-        # Add waveform visualizer
+        # Visualization section - Dynamic height
         self.visualizer = WaveformVisualizer(central_widget, width=7, height=4)
-        layout.addWidget(self.visualizer)
-
-        # Add progress bar section
-        progress_layout = QHBoxLayout()
+        layout.addWidget(self.visualizer, 1)  # Add stretch factor of 1 to make it responsive
+        
+        # Progress section - Fixed height
+        progress_widget = QWidget()
+        progress_widget.setFixedHeight(50)
+        progress_layout = QHBoxLayout(progress_widget)
+        progress_layout.setContentsMargins(0, 0, 0, 0)
         
         # Current time label
         self.current_time_label = QLabel("00:00")
@@ -105,6 +121,7 @@ class MainWindow(QMainWindow):
             QLabel {
                 color: #888888;
                 min-width: 50px;
+                qproperty-alignment: AlignCenter;
             }
         """)
         progress_layout.addWidget(self.current_time_label)
@@ -113,7 +130,7 @@ class MainWindow(QMainWindow):
         self.progress_slider = QSlider(Qt.Horizontal)
         self.progress_slider.setEnabled(False)
         self.progress_slider.setMinimum(0)
-        self.progress_slider.setMaximum(1000)  # Using 1000 for smoother sliding
+        self.progress_slider.setMaximum(1000)
         self.progress_slider.setStyleSheet("""
             QSlider::groove:horizontal {
                 border: none;
@@ -156,44 +173,61 @@ class MainWindow(QMainWindow):
             QLabel {
                 color: #888888;
                 min-width: 50px;
+                qproperty-alignment: AlignCenter;
             }
         """)
         progress_layout.addWidget(self.total_time_label)
         
-        layout.addLayout(progress_layout)
+        layout.addWidget(progress_widget)
 
-        # Control panel
-        control_panel = QHBoxLayout()
+        # Control panel - Fixed height
+        control_widget = QWidget()
+        control_widget.setFixedHeight(60)
+        control_panel = QHBoxLayout(control_widget)
+        control_panel.setContentsMargins(0, 0, 0, 0)
         control_panel.setSpacing(10)
         
-        # Common button style with centered content and emoji support
+        # Button style
         button_style = """
             QPushButton {
                 font-weight: bold;
                 padding: 8px 16px;
                 min-width: 120px;
+                min-height: 40px;
+                max-height: 40px;
                 text-align: center;
                 font-size: 14px;
-            }
-            QPushButton QIcon {
-                margin-right: 5px;
+                border-radius: 4px;
             }
         """
         
-        # Play/Pause button with emoji
-        self.play_button = QPushButton('▶️ Play')  # Unicode play symbol
+        # Play/Pause button
+        self.play_button = QPushButton('Play')
         self.play_button.setEnabled(False)
+        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.play_button.clicked.connect(self.toggle_playback)
+        self.play_button.setIconSize(QSize(25, 25))
         self.play_button.setStyleSheet(button_style)
         
-        # Stop button with emoji
-        self.stop_button = QPushButton('⏹️ Stop')  # Unicode stop symbol
+        # Stop button
+        self.stop_button = QPushButton('Stop')
         self.stop_button.setEnabled(False)
+        self.stop_button.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
+        self.stop_button.setIconSize(QSize(25, 25))
         self.stop_button.clicked.connect(self.stop_playback)
         self.stop_button.setStyleSheet(button_style)
+
+        # Add spacers and buttons to control panel
+        control_panel.addStretch()
+        control_panel.addWidget(self.play_button)
+        control_panel.addWidget(self.stop_button)
+        control_panel.addStretch()
         
-        # Load button with emoji
-        load_button = QPushButton('📂 Load Audio')  # Unicode folder symbol
+        layout.addWidget(control_widget)
+
+
+        load_button = QPushButton('                       Load Audio                      ')
+        load_button.setFixedHeight(40)
         load_button.clicked.connect(self.load_file)
         load_button.setStyleSheet(button_style + """
             QPushButton {
@@ -206,18 +240,24 @@ class MainWindow(QMainWindow):
                 background-color: #0055bb;
             }
         """)
+        load_button.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))
+        load_button.setIconSize(QSize(20, 20))
+        load_button.setFixedHeight(40)
+        load_button.setFixedWidth(350)
+        load_button.setFlat(True)
+        
+        container = QWidget()
 
-        # Add spacers to center the control buttons
-        control_panel.addStretch()
-        control_panel.addWidget(self.play_button)
-        control_panel.addWidget(self.stop_button)
-        control_panel.addStretch()
 
-        # Add all components to main layout
-        layout.addLayout(control_panel)
-        layout.addWidget(load_button)
+        container_layout = QHBoxLayout(container)
+        container_layout.addWidget(load_button)
+        container_layout.setSpacing(10)
+
+        container_layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(container)
 
         # Status bar
+        self.statusBar().setFixedHeight(30)
         self.statusBar().showMessage('Ready')
 
         # Initialize timer for updates
@@ -261,14 +301,16 @@ class MainWindow(QMainWindow):
         if not self.is_playing:
             self.audio_engine.play(start_pos=self.pause_position)
             self.is_playing = True
-            self.play_button.setText('⏸️ Pause')  # Unicode pause symbol
+            self.play_button.setText('Pause')  # Unicode pause symbol
+            self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             self.start_time = time.time() - self.pause_position
             self.visualizer.timer.start(self.visualizer.update_interval)
             self.statusBar().showMessage('Playing')
         else:
             self.audio_engine.pause()
             self.is_playing = False
-            self.play_button.setText('▶️ Play')  # Unicode play symbol
+            self.play_button.setText('Play')
+            self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
             self.pause_position = time.time() - self.start_time
             self.visualizer.timer.stop()
             self.statusBar().showMessage('Paused')
@@ -295,7 +337,10 @@ class MainWindow(QMainWindow):
 
     def stop_playback(self):
         self.audio_engine.stop()
-        self.play_button.setText('▶️ Play')  # Unicode play symbol
+        self.play_button.setText('Play')
+        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        # add play icon to the button 
+
         self.is_playing = False
         self.pause_position = 0
         self.progress_slider.setValue(0)
@@ -323,6 +368,13 @@ class MainWindow(QMainWindow):
         self.update_timer.stop()
         self.audio_engine.cleanup()
         event.accept()
+
+
+
+
+
+
+
 
 
 

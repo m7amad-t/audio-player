@@ -4,7 +4,7 @@ from pathlib import Path
 
 @dataclass
 class AudioPlayerConfig:
-    window_width: int = 800
+    window_width: int = 1000
     window_height: int = 500
     update_interval: int = 16
     buffer_size: int = 8192
