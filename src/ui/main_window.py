@@ -26,14 +26,14 @@ class MainWindow(QMainWindow):
     def apply_dark_theme(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #1e1e1e;
+                background-color: #191825;
             }
             QWidget {
-                background-color: #1e1e1e;
+                background-color: #191825;
                 color: #ffffff;
             }
             QPushButton {
-                background-color: #2d2d2d;
+                background-color: #865DFF;
                 border: none;
                 padding: 8px 16px;
                 border-radius: 4px;
@@ -42,13 +42,13 @@ class MainWindow(QMainWindow):
                 margin: 2px;
             }
             QPushButton:hover {
-                background-color: #3d3d3d;
+                background-color: #865DF0;
             }
             QPushButton:pressed {
-                background-color: #444444;
+                background-color: #865DFF6;
             }
             QPushButton:disabled {
-                background-color: #252525;
+                background-color: #19182f;
                 color: #666666;
             }
             QLabel {
@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
                 padding: 5px;
             }
             QStatusBar {
-                background-color: #252525;
+                background-color: #19182f;
                 color: #888888;
             }
             QStatusBar::item {
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.file_label.setStyleSheet("""
             QLabel {
                 padding: 0 15px;
-                background-color: #252525;
+                background-color: #19182f;
                 border-radius: 8px;
                 font-size: 13px;
                 min-height: 50px;
@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
         self.viz_combo.setFixedWidth(150)
         self.viz_combo.setStyleSheet("""
             QComboBox {
-                background-color: #2a2a2a;
+                background-color: #19182f;
                 color: #888888;
                 border: 1px solid #3a3a3a;
                 border-radius: 4px;
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
 
         # Visualization section
         self.visualizer = WaveformVisualizer(central_widget, width=7, height=4)
-        layout.addWidget(self.visualizer, 1)  # Add stretch factor of 1 to make it responsive
+        layout.addWidget(self.visualizer, 1) 
         
         # Progress section - Fixed height
         progress_widget = QWidget()
@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
             }
 
             QSlider::handle:horizontal {
-                background: #00BFFF;
+                background: #865dff;
                 border: none;
                 width: 12px;
                 height: 12px;
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
             }
 
             QSlider::handle:horizontal:hover {
-                background: #33CCFF;
+                background: #ffffff;
                 width: 14px;
                 height: 14px;
                 margin: -5px 0;
@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
             }
 
             QSlider::sub-page:horizontal {
-                background: #00BFFF;
+                background: #865daa;
                 border-radius: 2px;
             }
         """)
@@ -269,13 +269,13 @@ class MainWindow(QMainWindow):
         load_button.clicked.connect(self.load_file)
         load_button.setStyleSheet(button_style + """
             QPushButton {
-                background-color: #0066cc;
+                background-color: #865dff;
             }
             QPushButton:hover {
-                background-color: #0077ee;
+                background-color: #2e0249;
             }
             QPushButton:pressed {
-                background-color: #0055bb;
+                background-color: #2e0249;
             }
         """)
         load_button.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))

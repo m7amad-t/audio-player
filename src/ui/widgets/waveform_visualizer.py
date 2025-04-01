@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QTimer, Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib import transforms, patheffects  # Added patheffects import
+from matplotlib import transforms, patheffects 
 import numpy as np
 import pygame
 from enum import Enum
@@ -19,47 +19,95 @@ class VisualizationType(Enum):
 class WaveformVisualizer(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
+        # Remove figure padding/borders
+        self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0, hspace=0)
+        
         self.axes = self.fig.add_subplot(111)
         
-        # Define standard colors
-        self.background_color = (0.12, 0.12, 0.12)  # Dark gray for background
-        self.figure_color = (0.15, 0.15, 0.15)      # Slightly lighter gray for figure
+        # Define colors
+        self.background_color = '#191825'
+        self.figure_color = '#191825'
         
+        # Set background colors
         self.axes.set_facecolor(self.background_color)
         self.fig.patch.set_facecolor(self.figure_color)
+        
+        # Remove all borders and spines
+        for spine in self.axes.spines.values():
+            spine.set_visible(False)
+            
         super(WaveformVisualizer, self).__init__(self.fig)
         self.setParent(parent)
+
+        # Remove widget frame
+        self.setStyleSheet("border: none;")
         
-        # Visualization settings
+        # Initialize basic properties
         self.visualization_type = VisualizationType.WAVEFORM
-        self.num_bars = 50
-        
-        # Animation state
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_plot)
-        self.update_interval = 50
-        
-        # Audio buffer for visualization
-        self.chunk_size = 2048
         self.audio_data = None
         self.sample_rate = None
+        self.chunk_size = 2048
+        self.update_interval = 50  # 50ms update interval
         
-        # Initialize visualizations
+        # Visualization-specific properties
+        self.num_bars = 64  # Number of bars for bar visualization
+        self.num_circular_bars = 180  # Number of bars for circular visualization
+        
+        # Initialize visualization elements
         self.line = None
         self.bars = None
         self.spectrum_line = None
         self.spectrum_particles = None
-        self.particle_history = []
-        self.max_history = 10  # Number of frames to keep in history
         self.circular_line = None
-        self._setup_visualization(VisualizationType.WAVEFORM)
-        
-        # Add particle system properties
+        self.circular_bars = []
+        self.center_circle = None
+        self.gradient_fill = None
+        self.glow_fill = None
+        self.top_line = None
         self.particles = []
-        self.num_particles = 30
-        self.particle_speed = 0.1
-        self.particle_velocities = []
-        self.last_bar_values = None  # Store previous bar values to detect peaks
+        self.last_bar_values = None
+        self.particle_scatter = None
+        self.particle_history = []
+        self.freq_bands = None
+        
+        # Setup plot
+        self._setup_plot()
+        
+        # Setup timer for updates
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_plot)
+        self.timer.start(self.update_interval)
+
+    def _setup_plot(self):
+        self.axes.clear()
+        
+        # Maintain background colors
+        self.axes.set_facecolor(self.background_color)
+        self.fig.patch.set_facecolor(self.figure_color)
+        
+        # Remove all ticks and labels
+        self.axes.set_xticks([])
+        self.axes.set_yticks([])
+        
+        # Remove all spines again (needed after clear)
+        for spine in self.axes.spines.values():
+            spine.set_visible(False)
+            
+        self.axes.set_ylim(-1, 1)
+        self.axes.grid(False)
+        
+        # Create visualization line
+        self.line, = self.axes.plot([], [], color='#00BFFF', lw=2)
+        
+        # Ensure figure takes up entire space
+        self.fig.tight_layout(pad=0)
+        
+        self.draw()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Ensure figure takes up entire space when resized
+        self.fig.tight_layout(pad=0)
 
     def _setup_axes(self):
         # Store the current visualization type before clearing
@@ -111,71 +159,126 @@ class WaveformVisualizer(FigureCanvasQTAgg):
             self.glow_fill = None
             self.top_line = None
             
-            # Set background darker for better gradient visibility
-            self.axes.set_facecolor((0.1, 0.1, 0.1))
+            # Set background colors
+            self.axes.set_facecolor('#191825')
+            self.fig.patch.set_facecolor('#191825')
             
-            # Add subtle grid
-            self.axes.grid(True, color='#222222', linestyle='-', linewidth=0.5)
+            # Remove all spines and borders
+            for spine in self.axes.spines.values():
+                spine.set_visible(False)
+            
+            # Remove ticks and labels
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            
+            # Optional subtle grid with matching theme
+            self.axes.grid(True, color='#252336', linestyle='-', linewidth=0.5, alpha=0.3)
+            
+            # Remove any remaining padding
+            self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0, hspace=0)
         elif viz_type == VisualizationType.BARS:
             self.line = None
             self.spectrum_line = None
             self.spectrum_particles = None
             self.circular_line = None
             
-            # Initialize bars
+            # Set background colors
+            self.axes.set_facecolor('#191825')
+            self.fig.patch.set_facecolor('#191825')
+            
+            # Remove all spines and borders
+            for spine in self.axes.spines.values():
+                spine.set_visible(False)
+            
+            # Initialize bars without borders
             self.bars = self.axes.bar(
                 range(self.num_bars),
                 [0] * self.num_bars,
                 color='#00BFFF',
-                width=0.8
+                width=0.8,
+                linewidth=0  # Remove bar borders
             )
             
             # Initialize particles
             self.particles = []
             self.last_bar_values = None
             
-            # Initialize particle scatter plot
+            # Initialize particle scatter plot without borders
             self.particle_scatter = self.axes.scatter(
                 [], [], 
                 c='#00BFFF',
                 alpha=0.6,
-                s=30
+                s=30,
+                edgecolor='none',  # Remove particle borders
+                linewidth=0
             )
+            
+            # Set plot limits and appearance
+            self.axes.set_ylim(0, 1)
+            self.axes.set_xlim(-1, self.num_bars)
+            
+            # Remove ticks and labels
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            
+            # Optional subtle grid with matching theme
+            self.axes.grid(True, color='#252336', linestyle='-', linewidth=0.5, alpha=0.3)
+            
+            # Remove any remaining padding
+            self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0, hspace=0)
         elif viz_type == VisualizationType.SPECTRUM:
             self.line = None
             self.bars = None
             self.circular_line = None
+            
+            # Set background colors
+            self.axes.set_facecolor('#191825')
+            self.fig.patch.set_facecolor('#191825')
+            
+            # Remove all spines and borders
+            for spine in self.axes.spines.values():
+                spine.set_visible(False)
+            
             self.spectrum_particles = self.axes.scatter(
                 [], [], 
                 c='#00BFFF',
                 alpha=0.8,
                 s=50,
-                edgecolor='white',
-                linewidth=0.5
+                edgecolor='none',  # Remove particle borders
+                linewidth=0
             )
+            
             self.spectrum_line, = self.axes.plot(
                 [], [], 
                 color='#00BFFF',
                 alpha=0.4,
                 lw=2,
                 path_effects=[
-                    patheffects.withSimplePatchShadow(  # Changed from matplotlib.patheffects
+                    patheffects.withSimplePatchShadow(
                         offset=(0, 0),
                         shadow_rgbFace='#00BFFF',
                         alpha=0.3
                     )
                 ]
             )
+            
             self.particle_history = []
-            self.max_history = 8  # Reduced for faster response
+            self.max_history = 8
             self.freq_bands = None
+            
+            # Set plot limits and appearance
             self.axes.set_ylim(-0.1, 1.2)
             self.axes.set_xlim(0, self.sample_rate/2 if self.sample_rate else 22050)
-            freq_ticks = [0, 5000, 10000, 15000, 20000]
-            self.axes.set_xticks(freq_ticks)
-            self.axes.set_xticklabels([f'{int(f/1000)}kHz' for f in freq_ticks])
-            self.axes.tick_params(colors='#666666')
-            self.axes.grid(True, color='#222222', linestyle='-', linewidth=0.5, alpha=0.3)
+            
+            # Remove frequency ticks and labels
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            
+            # Optional subtle grid with matching theme
+            self.axes.grid(True, color='#252336', linestyle='-', linewidth=0.5, alpha=0.3)
+            
+            # Remove any remaining padding
+            self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0, hspace=0)
         elif viz_type == VisualizationType.CIRCULAR:
             self.line = None
             self.bars = None
@@ -187,6 +290,16 @@ class WaveformVisualizer(FigureCanvasQTAgg):
             self.axes.set_xlim(-8, 8)  # Increased range
             self.axes.set_aspect('equal')
             
+            # Remove all spines, ticks, and labels
+            for spine in self.axes.spines.values():
+                spine.set_visible(False)
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            
+            # Set background colors
+            self.axes.set_facecolor(self.background_color)
+            self.fig.patch.set_facecolor(self.figure_color)
+            
             self.num_circular_bars = 32
             theta = np.linspace(0, 2*np.pi, self.num_circular_bars, endpoint=False)
             
@@ -197,20 +310,25 @@ class WaveformVisualizer(FigureCanvasQTAgg):
                 bar = plt.Rectangle(
                     (0, 0), 0.1, 0.1,
                     facecolor='#00BFFF',
-                    alpha=0.6
+                    alpha=0.6,
+                    linewidth=0  # Remove border from bars
                 )
                 self.axes.add_patch(bar)
                 self.circular_bars.append(bar)
             
-            # Add center circle with larger initial size
+            # Add center circle with larger initial size and no border
             self.center_circle = plt.Circle(
                 (0, 0), 
                 base_radius, 
                 color='#00BFFF',
                 alpha=0.2,
-                fill=True
+                fill=True,
+                linewidth=0  # Remove border from circle
             )
             self.axes.add_artist(self.center_circle)
+            
+            # Remove padding and ensure tight layout
+            self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1, wspace=0, hspace=0)
             
             # Initialize scaling variables
             self.last_intensity = 0
@@ -262,42 +380,28 @@ class WaveformVisualizer(FigureCanvasQTAgg):
         self.draw()
 
     def _update_waveform(self, chunk):
-        # Downsample and smooth the data
-        downsample_factor = 4
-        smoothing_window = 15
-        
-        # Downsample the chunk
-        chunk_downsampled = chunk[::downsample_factor]
-        
-        # Apply smoothing using convolution
-        window = np.hanning(smoothing_window)
-        window = window / window.sum()
-        chunk_smooth = np.convolve(chunk_downsampled, window, mode='valid')
-        
-        # Create smooth x coordinates
-        x = np.linspace(0, len(chunk), len(chunk_smooth))
-        
-        # Add interpolation for smoother curves
-        x_interp = np.linspace(0, len(chunk), len(chunk) // 2)
-        chunk_interp = np.interp(x_interp, x, chunk_smooth)
-        
-        # Apply additional smoothing to interpolated data
-        chunk_interp = np.convolve(chunk_interp, window, mode='valid')
-        x_final = np.linspace(0, len(chunk), len(chunk_interp))
+        if len(chunk) == 0:
+            return
+            
+        # Create interpolated points for smoother visualization
+        x = np.linspace(0, len(chunk), len(chunk))
+        x_final = np.linspace(0, len(chunk), len(chunk) * 2)
+        chunk_interp = np.interp(x_final, x, chunk)
         
         # Calculate gradient colors
         num_points = len(chunk_interp)
         color_array = np.zeros((num_points, 4))  # RGBA array
         
         # Create gradient colors with smoother transition
+        base_color = np.array([0x86/255, 0x5d/255, 0xff/255, 1])  # #865dff
         for i in range(num_points):
             pos = i / num_points
-            # Smoother gradient from blue to cyan
+            # Gradient from base color to transparent
             color_array[i] = [
-                0,  # R
-                0.75 + 0.25 * (1 - np.cos(pos * np.pi)) / 2,  # G (smoother transition)
-                1,  # B
-                0.7 * (1 - 0.3 * pos)  # A (gentler fade out)
+                base_color[0],  # R
+                base_color[1],  # G
+                base_color[2],  # B
+                0.8 * (1 - 0.5 * pos)  # A (fade out)
             ]
         
         # Handle gradient fill
@@ -309,35 +413,36 @@ class WaveformVisualizer(FigureCanvasQTAgg):
             alpha=0.7
         )
         
-        # Handle glow effect with smoother transition
+        # Add glow effect
         if hasattr(self, 'glow_fill') and self.glow_fill is not None:
             self.glow_fill.remove()
         self.glow_fill = self.axes.fill_between(
             x_final, chunk_interp, np.zeros_like(chunk_interp),
-            color='#00BFFF',
-            alpha=0.15,  # Reduced alpha for softer glow
+            color='#865dff',
+            alpha=0.3,
             linewidth=0
         )
         
-        # Handle top line with smoothing
-        if not hasattr(self, 'top_line') or self.top_line is None:
-            self.top_line, = self.axes.plot(
-                x_final, chunk_interp,
-                color='#FFFFFF',
-                alpha=0.3,  # Reduced alpha for softer line
-                linewidth=1
-            )
-        else:
-            self.top_line.set_data(x_final, chunk_interp)
+        # Update top line with glow effect
+        if hasattr(self, 'top_line') and self.top_line is not None:
+            self.top_line.remove()
+        self.top_line = self.axes.plot(
+            x_final, chunk_interp,
+            color='#865dff',
+            linewidth=2,
+            alpha=0.9,
+            path_effects=[
+                patheffects.withSimplePatchShadow(
+                    offset=(0, 0),
+                    shadow_rgbFace='#865dff',
+                    alpha=0.5,
+                    rho=0.5
+                )
+            ]
+        )[0]
         
-        # Add smooth transition between frames
-        if not hasattr(self, 'last_chunk'):
-            self.last_chunk = chunk_interp
-        else:
-            # Interpolate between last frame and current frame
-            transition_factor = 0.3  # Adjust this value to control smoothness (0-1)
-            chunk_interp = (1 - transition_factor) * self.last_chunk + transition_factor * chunk_interp
-            self.last_chunk = chunk_interp
+        # Draw the updated visualization
+        self.draw()
 
     def _update_bars(self, chunk):
         if self.bars is None:
