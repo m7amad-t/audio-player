@@ -1,13 +1,19 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QPushButton, QLabel, QFileDialog, QComboBox,
-                           QStyle, QSlider, QSizePolicy)
+                           QStyle, QSlider, QSizePolicy, QShortcut)
 from PyQt5.QtCore import Qt, QTimer, QSize
-from PyQt5.QtGui import QPalette, QColor, QIcon
+from PyQt5.QtGui import QPalette, QColor, QIcon, QKeySequence
 import pygame
 import soundfile as sf
 import time
-from ..core.audio_engine import AudioEngine
-from .widgets.waveform_visualizer import WaveformVisualizer, VisualizationType
+import sys
+import os
+
+# Add the project root directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.audio_engine import AudioEngine
+from src.ui.widgets.waveform_visualizer import WaveformVisualizer, VisualizationType
 from pathlib import Path
 
 class MainWindow(QMainWindow):
@@ -20,8 +26,46 @@ class MainWindow(QMainWindow):
         self.total_duration = 0
         self.start_time = 0
         self.pause_position = 0
+        
+        # Add keyboard shortcuts
+        self.setup_shortcuts()
+        
         self.init_ui()
         self.apply_dark_theme()
+
+    def setup_shortcuts(self):
+        """Setup keyboard shortcuts"""
+        # Play/Pause - Space
+        self.shortcut_play = QShortcut(QKeySequence(Qt.Key_Space), self)
+        self.shortcut_play.activated.connect(self.handle_play_shortcut)
+        
+        # Previous (back 10s) - Left Arrow
+        self.shortcut_prev = QShortcut(QKeySequence(Qt.Key_Left), self)
+        self.shortcut_prev.activated.connect(self.skip_backward)
+        
+        # Next (forward 10s) - Right Arrow
+        self.shortcut_next = QShortcut(QKeySequence(Qt.Key_Right), self)
+        self.shortcut_next.activated.connect(self.skip_forward)
+        
+        # Open file - 'O' key
+        self.shortcut_open = QShortcut(QKeySequence('O'), self)
+        self.shortcut_open.activated.connect(self.load_file)
+        
+        # Change visualization - Tab
+        self.shortcut_viz = QShortcut(QKeySequence(Qt.Key_Tab), self)
+        self.shortcut_viz.activated.connect(self.cycle_visualization)
+
+    def handle_play_shortcut(self):
+        """Handle play/pause shortcut"""
+        if self.play_button.isEnabled():
+            self.toggle_playback()
+
+    def cycle_visualization(self):
+        """Cycle through visualization types"""
+        if hasattr(self, 'viz_combo'):
+            current_index = self.viz_combo.currentIndex()
+            next_index = (current_index + 1) % self.viz_combo.count()
+            self.viz_combo.setCurrentIndex(next_index)
 
     def apply_dark_theme(self):
         self.setStyleSheet("""
@@ -270,7 +314,7 @@ class MainWindow(QMainWindow):
                 background-color: #19182f;
             }
         """)
-        self.backward_button.setToolTip("Back 10 seconds")
+        self.backward_button.setToolTip("Back 10 seconds (Left Arrow)")
         control_panel.addWidget(self.backward_button)
 
         # Play/Pause button
@@ -280,6 +324,7 @@ class MainWindow(QMainWindow):
         self.play_button.clicked.connect(self.toggle_playback)
         self.play_button.setIconSize(QSize(25, 25))
         self.play_button.setStyleSheet(button_style)
+        self.play_button.setToolTip("Play/Pause (Space)")
         control_panel.addWidget(self.play_button)
 
         # Stop button
@@ -319,7 +364,7 @@ class MainWindow(QMainWindow):
                 background-color: #19182f;
             }
         """)
-        self.forward_button.setToolTip("Forward 10 seconds")
+        self.forward_button.setToolTip("Forward 10 seconds (Right Arrow)")
         control_panel.addWidget(self.forward_button)
 
         control_panel.addStretch()
@@ -346,7 +391,8 @@ class MainWindow(QMainWindow):
         load_button.setFixedHeight(40)
         load_button.setFixedWidth(350)
         load_button.setFlat(True)
-        
+        load_button.setToolTip("Load Audio File (O)")
+
         container = QWidget()
 
 
@@ -357,9 +403,39 @@ class MainWindow(QMainWindow):
         container_layout.setAlignment(Qt.AlignCenter)
         layout.addWidget(container)
 
-        # Status bar
+        # Create a keyboard shortcuts info widget
+        shortcuts_info = QLabel()
+        shortcuts_info.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 11px;
+                padding: 5px;
+                background-color: #1a1a1a;
+                border-top: 1px solid #333333;
+            }
+        """)
+        shortcuts_info.setText("→ Skip 10s      |       ← Back 10s      |       Space Play/Pause        |       O Open File     |       Tab Change Visualization")
+        
+        # Create a container for the status bar items
+        status_container = QWidget()
+        status_layout = QHBoxLayout(status_container)
+        status_layout.setContentsMargins(10, 0, 10, 0)
+        status_layout.addWidget(shortcuts_info)
+        
+        # Add the container to the status bar
+        self.statusBar().addPermanentWidget(status_container, stretch=1)  # stretch=1 makes it take full width
+        self.statusBar().setStyleSheet("""
+            QStatusBar {
+                background-color: #1a1a1a;
+                color: #666666;
+            }
+        """)
         self.statusBar().setFixedHeight(30)
         self.statusBar().showMessage('Ready')
+
+        # Update visualization combo box tooltip
+        if hasattr(self, 'viz_combo'):
+            self.viz_combo.setToolTip("Change Visualization (Tab)")
 
         # Initialize timer for updates
         self.update_timer = QTimer()
