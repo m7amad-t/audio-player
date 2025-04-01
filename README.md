@@ -10,25 +10,25 @@ A modern audio player built with Python that brings your music to life with real
 
 ### -bars visualization
 <div align="center">
-  <img src="docs/file_loading.gif" alt="-bars Visualization Demo" width="600"/>
+  <img src="https://github.com/m7amad-t/audio-player/blob/main/bars.gif" alt="-bars Visualization Demo" width="600"/>
   <p><i>Real-time -bars visualization</i></p>
 </div>
 
 ### Circular Visualization
 <div align="center">
-  <img src="docs/viz_modes.gif" alt="Circular Visualization Demo" width="600"/>
+  <img src="https://github.com/m7amad-t/audio-player/blob/main/circular.gif" alt="Circular Visualization Demo" width="600"/>
   <p><i>Real-time Circular visualization</i></p>
 </div>
 
 ### Wave Visualization
 <div align="center">
-  <img src="docs/file_loading.gif" alt="Wave Visualization Demo" width="600"/>
+  <img src="https://github.com/m7amad-t/audio-player/blob/main/wave.gif" alt="Wave Visualization Demo" width="600"/>
   <p><i>Real-time waveform visualization</i></p>
 </div>
 
 ### Spectrum Visualization
 <div align="center">
-  <img src="docs/interface_demo.gif" alt="Spectrum Visualization Demo" width="600"/>
+  <img src="https://github.com/m7amad-t/audio-player/blob/main/spectrum.gif" alt="Spectrum Visualization Demo" width="600"/>
   <p><i>Real-time spectrum visualization</i></p>
 </div>
 
