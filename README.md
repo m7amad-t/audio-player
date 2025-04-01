@@ -1,4 +1,4 @@
-# 🎵 PyAudioViz Player
+# 🎵 audio-player
 
 A modern audio player built with Python that brings your music to life with real-time waveform visualization and a sleek dark-themed interface.
 
