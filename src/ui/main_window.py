@@ -42,10 +42,10 @@ class MainWindow(QMainWindow):
                 margin: 2px;
             }
             QPushButton:hover {
-                background-color: #865DF0;
+                background-color: #2e0249;
             }
             QPushButton:pressed {
-                background-color: #865DFF6;
+                background-color: #2e0279;
             }
             QPushButton:disabled {
                 background-color: #19182f;
@@ -73,9 +73,9 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         self.setWindowTitle('Audio Player')
         self.setGeometry(100, 100, 1000, 700)
-
+        icon_base_path = Path(__file__).parent / 'assets'
         # Set window icon
-        icon_path = Path(__file__).parent / 'assets' / 'icon.png'
+        icon_path = icon_base_path / 'icon.png'
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
         else:
@@ -239,6 +239,40 @@ class MainWindow(QMainWindow):
             }
         """
         
+        # Add spacers and buttons to control panel
+        control_panel.addStretch()
+        
+        # Backward 10s button
+        self.backward_button = QPushButton()
+        self.backward_button.setEnabled(False)
+        if (icon_base_path / 'minus_10.png').exists():
+            self.backward_button.setIcon(QIcon(str(icon_base_path / 'minus_10.png')))
+        else:
+            # Fallback to standard icon
+            self.backward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipBackward))
+        self.backward_button.setIconSize(QSize(25, 25))
+        self.backward_button.clicked.connect(self.skip_backward)
+        self.backward_button.setStyleSheet(button_style + """
+            QPushButton {
+                background-color: #211951;
+                border: none;
+                min-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: #2e0249;
+                color : #ffffff;                                          
+            }
+            QPushButton:pressed {
+                background-color: #2e0249;
+                color : #ffffff;
+            }
+            QPushButton:disabled {
+                background-color: #19182f;
+            }
+        """)
+        self.backward_button.setToolTip("Back 10 seconds")
+        control_panel.addWidget(self.backward_button)
+
         # Play/Pause button
         self.play_button = QPushButton('Play')
         self.play_button.setEnabled(False)
@@ -246,7 +280,8 @@ class MainWindow(QMainWindow):
         self.play_button.clicked.connect(self.toggle_playback)
         self.play_button.setIconSize(QSize(25, 25))
         self.play_button.setStyleSheet(button_style)
-        
+        control_panel.addWidget(self.play_button)
+
         # Stop button
         self.stop_button = QPushButton('Stop')
         self.stop_button.setEnabled(False)
@@ -254,11 +289,39 @@ class MainWindow(QMainWindow):
         self.stop_button.setIconSize(QSize(25, 25))
         self.stop_button.clicked.connect(self.stop_playback)
         self.stop_button.setStyleSheet(button_style)
-
-        # Add spacers and buttons to control panel
-        control_panel.addStretch()
-        control_panel.addWidget(self.play_button)
         control_panel.addWidget(self.stop_button)
+
+        # Forward 10s button
+        self.forward_button = QPushButton()
+        self.forward_button.setEnabled(False)
+        if (icon_base_path / 'plus_10.png').exists():
+            self.forward_button.setIcon(QIcon(str(icon_base_path / 'plus_10.png')))
+        else:
+            # Fallback to standard icon
+            self.forward_button.setIcon(self.style().standardIcon(QStyle.SP_MediaSkipForward))
+        self.forward_button.setIconSize(QSize(25, 25))
+        self.forward_button.clicked.connect(self.skip_forward)
+        self.forward_button.setStyleSheet(button_style + """
+            QPushButton {
+                background-color: #211951;
+                border: none;
+                min-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: #2e0249;
+                color : #ffffff;                                          
+            }
+            QPushButton:pressed {
+                background-color: #2e0249;
+                color : #ffffff;
+            }
+            QPushButton:disabled {
+                background-color: #19182f;
+            }
+        """)
+        self.forward_button.setToolTip("Forward 10 seconds")
+        control_panel.addWidget(self.forward_button)
+
         control_panel.addStretch()
         
         layout.addWidget(control_widget)
@@ -330,6 +393,9 @@ class MainWindow(QMainWindow):
                     self.pause_position = 0
                     self.play_button.setText('Play')
                     self.statusBar().showMessage(f'Loaded {file_path}')
+                    # Enable skip buttons
+                    self.forward_button.setEnabled(True)
+                    self.backward_button.setEnabled(True)
                 else:
                     self.statusBar().showMessage(f'Failed to load {file_path}')
             except Exception as e:
@@ -374,18 +440,17 @@ class MainWindow(QMainWindow):
             self.current_time_label.setText(self.format_time(current_time))
 
     def stop_playback(self):
-        self.audio_engine.stop()
-        self.play_button.setText('Play')
-        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        # add play icon to the button 
-
-        self.is_playing = False
-        self.pause_position = 0
-        self.progress_slider.setValue(0)
-        self.current_time_label.setText("00:00")
-        self.visualizer.timer.stop()
-        self.visualizer.reset_visualization()
-        self.statusBar().showMessage('Stopped')
+        """Stop playback and reset position"""
+        if hasattr(self, 'audio_engine') and self.audio_engine:
+            self.audio_engine.stop()
+            self.is_playing = False
+            self.play_button.setText('Play')
+            self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+            self.pause_position = 0
+            self.progress_slider.setValue(0)
+            self.current_time_label.setText('00:00')
+            self.visualizer.timer.stop()
+            self.statusBar().showMessage('Stopped')
 
     def update_time_display(self):
         if self.is_playing and not self.seeking:
@@ -405,6 +470,66 @@ class MainWindow(QMainWindow):
     def _on_viz_type_changed(self, viz_type_str):
         viz_type = VisualizationType(viz_type_str)
         self.visualizer.set_visualization_type(viz_type)
+
+    def skip_forward(self):
+        """Skip forward 10 seconds"""
+        if not self.current_file:
+            return
+        
+        # Calculate new position
+        current_pos = time.time() - self.start_time if self.is_playing else self.pause_position
+        new_pos = min(current_pos + 10, self.total_duration)
+        
+        # Store the playing state
+        was_playing = self.is_playing
+        
+        # Stop current playback
+        if self.is_playing:
+            self.audio_engine.pause()
+        
+        # Update position
+        self.pause_position = new_pos
+        
+        # Resume playback if it was playing
+        if was_playing:
+            self.audio_engine.play(start_pos=new_pos)
+            self.start_time = time.time() - new_pos
+        
+        # Update UI
+        slider_value = int((new_pos / self.total_duration) * 1000) if self.total_duration > 0 else 0
+        self.progress_slider.setValue(slider_value)
+        self.current_time_label.setText(self.format_time(new_pos))
+        self.statusBar().showMessage(f'Skipped to {self.format_time(new_pos)}')
+
+    def skip_backward(self):
+        """Skip backward 10 seconds"""
+        if not self.current_file:
+            return
+        
+        # Calculate new position
+        current_pos = time.time() - self.start_time if self.is_playing else self.pause_position
+        new_pos = max(0, current_pos - 10)
+        
+        # Store the playing state
+        was_playing = self.is_playing
+        
+        # Stop current playback
+        if self.is_playing:
+            self.audio_engine.pause()
+        
+        # Update position
+        self.pause_position = new_pos
+        
+        # Resume playback if it was playing
+        if was_playing:
+            self.audio_engine.play(start_pos=new_pos)
+            self.start_time = time.time() - new_pos
+        
+        # Update UI
+        slider_value = int((new_pos / self.total_duration) * 1000) if self.total_duration > 0 else 0
+        self.progress_slider.setValue(slider_value)
+        self.current_time_label.setText(self.format_time(new_pos))
+        self.statusBar().showMessage(f'Skipped to {self.format_time(new_pos)}')
 
     def closeEvent(self, event):
         self.update_timer.stop()
