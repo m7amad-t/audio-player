@@ -124,7 +124,7 @@ We welcome contributions! Here's how you can help:
 
 
 <div align="center">
-  <p>Made with ❤️ by [Mohammed]</p>
+  <p>Made with ❤️ by Mohammed </p>
   
   <a href="https://github.com/m7amad-t/audio-player/issues">Report Bug</a>
   ·
