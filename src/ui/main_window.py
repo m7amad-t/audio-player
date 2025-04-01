@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QPushButton, QLabel, QFileDialog,
+                           QPushButton, QLabel, QFileDialog, QComboBox,
                            QStyle, QSlider, QSizePolicy)
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QPalette, QColor, QIcon
@@ -7,7 +7,7 @@ import pygame
 import soundfile as sf
 import time
 from ..core.audio_engine import AudioEngine
-from .widgets.waveform_visualizer import WaveformVisualizer
+from .widgets.waveform_visualizer import WaveformVisualizer, VisualizationType
 from pathlib import Path
 
 class MainWindow(QMainWindow):
@@ -105,7 +105,45 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(self.file_label)
 
-        # Visualization section - Dynamic height
+        # Visualization type selector
+        viz_selector_container = QWidget()
+        viz_selector_layout = QHBoxLayout(viz_selector_container)
+        viz_selector_layout.setContentsMargins(0, 0, 0, 10)
+        
+        viz_label = QLabel("Visualization:")
+        viz_label.setStyleSheet("color: #888888;")
+        viz_selector_layout.addWidget(viz_label)
+        
+        self.viz_combo = QComboBox()
+        self.viz_combo.addItems([viz_type.value for viz_type in VisualizationType])
+        self.viz_combo.setFixedWidth(150)
+        self.viz_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #2a2a2a;
+                color: #888888;
+                border: 1px solid #3a3a3a;
+                border-radius: 4px;
+                padding: 5px;
+            }
+            QComboBox:hover {
+                border: 1px solid #4a4a4a;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: url(src/ui/assets/down-arrow.png);
+                width: 12px;
+                height: 12px;
+            }
+        """)
+        self.viz_combo.currentTextChanged.connect(self._on_viz_type_changed)
+        viz_selector_layout.addWidget(self.viz_combo)
+        viz_selector_layout.addStretch()
+        
+        layout.addWidget(viz_selector_container)
+
+        # Visualization section
         self.visualizer = WaveformVisualizer(central_widget, width=7, height=4)
         layout.addWidget(self.visualizer, 1)  # Add stretch factor of 1 to make it responsive
         
@@ -364,10 +402,16 @@ class MainWindow(QMainWindow):
             
             self.visualizer.update_plot()
 
+    def _on_viz_type_changed(self, viz_type_str):
+        viz_type = VisualizationType(viz_type_str)
+        self.visualizer.set_visualization_type(viz_type)
+
     def closeEvent(self, event):
         self.update_timer.stop()
         self.audio_engine.cleanup()
         event.accept()
+
+
 
 
 
