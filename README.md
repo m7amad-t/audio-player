@@ -53,7 +53,7 @@ A modern audio player built with Python that brings your music to life with real
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pyaudioviz-player.git
+git clone https://github.com/m7amad-t/audio-player.git
 cd pyaudioviz-player
 
 # Create and activate virtual environment
@@ -106,11 +106,6 @@ src/
 
 ## 🔧 Advanced Features
 
-<div align="center">
-  <img src="docs/advanced_features.gif" alt="Advanced Features Demo" width="700"/>
-  <p><i>Real-time audio processing and responsive visualization</i></p>
-</div>
-
 - 🎯 Precise seeking with progress bar
 - 📊 Dynamic waveform rendering
 - 🎨 Multiple visualization algorithms
@@ -127,22 +122,11 @@ We welcome contributions! Here's how you can help:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [PyQt5](https://www.riverbankcomputing.com/software/pyqt/) - The backbone of our GUI
-- [pygame](https://www.pygame.org/) - Powering the audio engine
-- All our amazing contributors and users
-
----
 
 <div align="center">
-  <p>Made with ❤️ by [Your Name]</p>
+  <p>Made with ❤️ by [Mohammed]</p>
   
-  <a href="https://github.com/yourusername/pyaudioviz-player/issues">Report Bug</a>
+  <a href="https://github.com/m7amad-t/audio-player/issues">Report Bug</a>
   ·
-  <a href="https://github.com/yourusername/pyaudioviz-player/issues">Request Feature</a>
+  <a href="https://github.com/m7amad-t/audio-player/issues">Request Feature</a>
 </div>
