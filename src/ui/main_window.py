@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                            QPushButton, QLabel, QFileDialog,
                            QStyle, QSlider)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPalette, QColor
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QPalette, QColor, QIcon
 import pygame
 import soundfile as sf
 import time
@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
                 padding: 8px 16px;
                 border-radius: 4px;
                 color: #ffffff;
-                min-width: 80px;
+                min-width: 120px;
                 margin: 2px;
             }
             QPushButton:hover {
@@ -166,27 +166,36 @@ class MainWindow(QMainWindow):
         control_panel = QHBoxLayout()
         control_panel.setSpacing(10)
         
-        # Play/Pause button
-        self.play_button = QPushButton('Play')
-        self.play_button.setEnabled(False)
-        self.play_button.clicked.connect(self.toggle_playback)
-        self.play_button.setStyleSheet("""
+        # Common button style with centered content and emoji support
+        button_style = """
             QPushButton {
                 font-weight: bold;
+                padding: 8px 16px;
+                min-width: 120px;
+                text-align: center;
+                font-size: 14px;
             }
-        """)
-        control_panel.addWidget(self.play_button)
+            QPushButton QIcon {
+                margin-right: 5px;
+            }
+        """
         
-        # Stop button
-        self.stop_button = QPushButton('Stop')
+        # Play/Pause button with emoji
+        self.play_button = QPushButton('▶️ Play')  # Unicode play symbol
+        self.play_button.setEnabled(False)
+        self.play_button.clicked.connect(self.toggle_playback)
+        self.play_button.setStyleSheet(button_style)
+        
+        # Stop button with emoji
+        self.stop_button = QPushButton('⏹️ Stop')  # Unicode stop symbol
         self.stop_button.setEnabled(False)
         self.stop_button.clicked.connect(self.stop_playback)
-        control_panel.addWidget(self.stop_button)
+        self.stop_button.setStyleSheet(button_style)
         
-        # Load button
-        load_button = QPushButton('Load Audio File')
+        # Load button with emoji
+        load_button = QPushButton('📂 Load Audio')  # Unicode folder symbol
         load_button.clicked.connect(self.load_file)
-        load_button.setStyleSheet("""
+        load_button.setStyleSheet(button_style + """
             QPushButton {
                 background-color: #0066cc;
             }
@@ -250,23 +259,17 @@ class MainWindow(QMainWindow):
 
     def toggle_playback(self):
         if not self.is_playing:
-            if self.pause_position > 0:  # If resuming from pause
-                self.audio_engine.play(start_pos=self.pause_position)
-            else:  # Starting fresh
-                self.audio_engine.play()
-            
-            self.play_button.setText('Pause')
+            self.audio_engine.play(start_pos=self.pause_position)
             self.is_playing = True
-            self.visualizer.timer.start(16)
+            self.play_button.setText('⏸️ Pause')  # Unicode pause symbol
+            self.start_time = time.time() - self.pause_position
+            self.visualizer.timer.start(self.visualizer.update_interval)
             self.statusBar().showMessage('Playing')
         else:
-            # Store current position before pausing
-            self.pause_position = pygame.mixer.music.get_pos() / 1000.0  # Convert to seconds
-            if self.pause_position < 0:  # pygame returns -1 if music isn't playing
-                self.pause_position = 0
             self.audio_engine.pause()
-            self.play_button.setText('Play')
             self.is_playing = False
+            self.play_button.setText('▶️ Play')  # Unicode play symbol
+            self.pause_position = time.time() - self.start_time
             self.visualizer.timer.stop()
             self.statusBar().showMessage('Paused')
 
@@ -292,7 +295,7 @@ class MainWindow(QMainWindow):
 
     def stop_playback(self):
         self.audio_engine.stop()
-        self.play_button.setText('Play')
+        self.play_button.setText('▶️ Play')  # Unicode play symbol
         self.is_playing = False
         self.pause_position = 0
         self.progress_slider.setValue(0)
@@ -320,6 +323,13 @@ class MainWindow(QMainWindow):
         self.update_timer.stop()
         self.audio_engine.cleanup()
         event.accept()
+
+
+
+
+
+
+
 
 
 
